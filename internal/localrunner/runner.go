@@ -33,6 +33,10 @@ import (
 // Profile is the execution profile of every local job and receipt.
 const Profile = "local"
 
+// ErrLeft is the cause of a context whose command was terminated or lost its
+// terminal. The job of that command goes on, for a later command to wait for.
+var ErrLeft = errors.New("the command was stopped")
+
 // The files of one job, in its own directory of the user's cache.
 const (
 	attemptFile = "attempt.json" // what to run; written once, before the supervisor starts
@@ -166,7 +170,7 @@ func (r *Runner) Run(ctx context.Context, job workflowrunner.Job) (workflowrunne
 // Resume waits for the result of a kept job. Unless the result is already
 // there, it starts a supervisor first: one that finds the job taken ends
 // soon, and one that finds it abandoned runs it again. When ctx ends, Resume
-// asks the supervisor to stop.
+// asks the supervisor to stop, unless the cause is ErrLeft.
 func (r *Runner) Resume(ctx context.Context, id, binding, job string) (workflowrunner.Signed, workflowrunner.Receipt, error) {
 	dir, err := r.dir(id)
 	if err != nil {
@@ -203,6 +207,9 @@ func (r *Runner) Resume(ctx context.Context, id, binding, job string) (workflowr
 		}
 		select {
 		case <-ctx.Done():
+			if errors.Is(context.Cause(ctx), ErrLeft) {
+				return workflowrunner.Signed{}, workflowrunner.Receipt{}, ErrLeft
+			}
 			_ = os.WriteFile(filepath.Join(dir, cancelFile), nil, 0o600)
 			return workflowrunner.Signed{}, workflowrunner.Receipt{}, errors.New("this command ended before the job did, and asked the job to stop")
 		case <-exited:
@@ -280,14 +287,44 @@ func (r *Runner) dir(id string) (string, error) {
 	return filepath.Join(r.cache, id), nil
 }
 
+// Drive makes this command the only one that drives the run of a task in
+// this worktree. A second command calls waiting and stays here until the
+// first has ended; it then finds the run where the first left it. The
+// returned function lets the next command in. After an error no lock is held.
+func (r *Runner) Drive(ctx context.Context, task string, waiting func()) (func(), error) {
+	dir := filepath.Join(r.cache, "run-"+workflowrunner.Digest([]any{r.project, task})[:16])
+	for wait := fslock.NoWait; ; wait = 0 {
+		_ = os.MkdirAll(dir, 0o700)
+		lock, err := fslock.Acquire(ctx, filepath.Join(dir, lockFile), fslock.Options{Wait: wait})
+		switch {
+		case err == nil:
+			return func() { _ = lock.Close() }, nil
+		case errors.Is(err, fslock.ErrBusy):
+			waiting()
+		case !errors.Is(err, fslock.ErrReplaced): // a pruned lock is taken again
+			return func() {}, err
+		}
+	}
+}
+
 // prune forgets the jobs that ended more than a week ago. A task keeps every
 // receipt it relies on in its own ledger.
 func (r *Runner) prune() {
 	entries, _ := os.ReadDir(r.cache)
 	for _, entry := range entries {
 		dir := filepath.Join(r.cache, entry.Name())
-		if info, err := entry.Info(); err == nil && time.Since(info.ModTime()) > keep && !busy(dir) {
+		if info, err := entry.Info(); err != nil || time.Since(info.ModTime()) <= keep {
+			continue
+		}
+		// The folder goes while its lock is held: a command that waited for
+		// the lock then finds it replaced and takes a new one.
+		lock, err := fslock.Acquire(context.Background(), filepath.Join(dir, lockFile), fslock.Options{Wait: fslock.NoWait})
+		if !errors.Is(err, fslock.ErrBusy) {
 			_ = os.RemoveAll(dir)
+		}
+		if err == nil {
+			_ = lock.Close()
+			_ = os.Remove(dir) // Windows keeps a folder until the last file in it is closed
 		}
 	}
 }

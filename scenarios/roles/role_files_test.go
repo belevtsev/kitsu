@@ -10,10 +10,14 @@ import (
 )
 
 // roleFile is the Claude Code file of a role, in the role plugin. managedSkill
-// holds the coordinator's instructions there.
+// starts a local run there, and coordinatorFile holds the coordinator's
+// instructions.
 func roleFile(id string) string { return "plugins/kitsu-team/agents/" + id + ".md" }
 
-const managedSkill = "plugins/kitsu-team/skills/managed/SKILL.md"
+const (
+	managedSkill    = "plugins/kitsu-team/skills/managed/SKILL.md"
+	coordinatorFile = "plugins/kitsu-team/skills/managed/coordinator.md"
+)
 
 // Requirement "Explicit start", scenario "No role can start a role".
 func TestNoRoleCanStartARole(t *testing.T) {
@@ -90,7 +94,7 @@ func TestASearchOfTheTexts(t *testing.T) {
 		for _, id := range roleIDs {
 			search(t, roleFile(id), readModuleFile(t, roleFile(id)))
 		}
-		for _, skill := range []string{"skills/task/SKILL.md", managedSkill} {
+		for _, skill := range []string{"skills/task/SKILL.md", managedSkill, coordinatorFile} {
 			search(t, skill, readModuleFile(t, skill))
 		}
 	})

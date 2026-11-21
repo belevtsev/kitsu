@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- The `managed` skill of `kitsu-team` [starts a local run](docs/configured-workflow.md#run-a-task-on-your-own-machine) in one command. Ask it for the roles to coordinate them in the chat.
 - State the [measured token cost](docs/benchmarks.md#what-an-agent-spends) of the role workflow before a new `kitsu task run` and in the `managed` skill.
 - Deliver a verified candidate with a plain `git commit`. The [receipt](docs/task-harness.md#do-a-daily-task-in-one-command) names that commit without another Kitsu command.
 

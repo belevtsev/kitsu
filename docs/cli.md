@@ -147,7 +147,7 @@ Default `task start` explicitly launches `codex` or `claude` in the current dire
 prompt to use Kitsu's task skill. All three standard streams must be terminals. Demonstrated
 local setup failures prevent launch; unknown trust or runtime behavior remains a stated caveat.
 The host controls authentication, model access, permissions, and delegation. On Claude Code the
-daily workflow is `/kitsu:task`; the managed workflow is `/kitsu-team:managed` and its workers are `kitsu-team:<role>`. On Codex the host loads Kitsu's `task`
+daily workflow is `/kitsu:task`. `/kitsu-team:managed` starts a [local run](configured-workflow.md#run-a-task-on-your-own-machine), or on request the managed workflow, whose workers are `kitsu-team:<role>`. On Codex the host loads Kitsu's `task`
 or `managed` skill and the role texts. In a Git checkout, daily startup saves a private intake snapshot before opening the host. Preview and legacy managed compact handoffs retain their existing behavior.
 
 To prepare a handoff for an existing desktop session, or inspect it before installing the host CLI:

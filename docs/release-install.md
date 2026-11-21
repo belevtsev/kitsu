@@ -58,9 +58,9 @@ ready, broken, and unknown evidence. Installing the supporting Git gate is a sep
 The installer sets up two plugins of the same marketplace:
 
 - `kitsu` has the daily task skill, the gate skill and the host hooks.
-- `kitsu-team` has the seven role agents, the managed role workflow, OpenSpec records, role settings and supervised runs. It is experimental.
+- `kitsu-team` has the starter of a local run, the seven role agents, the managed role workflow, OpenSpec records, role settings and supervised runs. It is experimental.
 
-With `kitsu-team` installed, each session carries about 160 more words of role and skill descriptions. The managed workflow starts only when you ask for it. On two small tasks, one run each, the roles used about 5 and 39 times the tokens of a plain agent ([what an agent spends](benchmarks.md#what-an-agent-spends)). In Claude Code, start managed work with `/kitsu-team:managed`. In Codex, ask for Kitsu's `managed` skill.
+With `kitsu-team` installed, each session carries about 150 more words of role and skill descriptions. The `managed` skill starts a [run on your own machine](configured-workflow.md#run-a-task-on-your-own-machine): a developer agent, your approved checks and a reviewer agent. In Claude Code, enter `/kitsu-team:managed <request>`. In Codex, ask for Kitsu's `managed` skill. The roles that a chat coordinates start only when you ask for them. On two small tasks, one run each, they used about 5 and 39 times the tokens of a plain agent ([what an agent spends](benchmarks.md#what-an-agent-spends)).
 
 ### Turn it off
 

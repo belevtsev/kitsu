@@ -28,8 +28,9 @@ Most tasks are small. Do not start the workflow for a task the first row describ
 
 ## 2. Start it
 
-Load the skill `managed` of this plugin with the user's request. In Claude Code that is
-`/kitsu-team:managed` followed by the request. The skill makes you the coordinator: you start
+Ask the skill `managed` of this plugin to coordinate the roles in this chat, with the user's
+request. In Claude Code that is `/kitsu-team:managed Coordinate the roles in this chat.`
+followed by the request. Its file coordinator.md makes you the coordinator: you start
 the roles, check what each one changed, keep the record, and ask the user for the approvals.
 You write no specification, test or code yourself.
 
@@ -51,8 +52,8 @@ $ kitsu change check add-discount
 add-discount: the files obey their rules
 ```
 
-When a folder like this already exists, do not start over. Load the skill `managed`: it reads the
-stage and continues there, and a finished stage is not repeated.
+When a folder like this already exists, do not start over. Follow coordinator.md of the skill
+`managed`: it reads the stage and continues there, and a finished stage is not repeated.
 
 ## 4. Specifications that already exist
 

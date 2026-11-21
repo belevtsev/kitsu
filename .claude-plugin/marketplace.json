@@ -16,7 +16,7 @@
     {
       "name": "kitsu-team",
       "source": "./plugins/kitsu-team",
-      "description": "Experimental: coordinate specification, implementation, testing and review with seven role agents, OpenSpec records and supervised runs. Installed with Kitsu unless you turn it off. Needs the kitsu plugin. A managed task costs several times the tokens of a daily task.",
+      "description": "Experimental: run a coding task through a developer agent, your approved checks and a reviewer agent that Kitsu coordinates in code. On request: seven specialist roles coordinated in the chat, OpenSpec records, role settings and supervised runs. Installed with Kitsu unless you turn it off. Needs the kitsu plugin.",
       "category": "development"
     }
   ]

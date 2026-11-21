@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/belevtsev/kitsu/v3/internal/workflowrunner"
 )
@@ -97,4 +98,55 @@ func TestAJobTheRunnerNoLongerHoldsIsReleasedWithItsReason(t *testing.T) {
 	if _, _, err := r.Run(t.Context(), job); err == nil {
 		t.Error("a job built for another policy was accepted")
 	}
+}
+
+// One command drives the run of a task at a time. A second one says that it
+// waits, and goes on when the first has ended. The lock of a run that nobody
+// drives is forgotten after a week, and one that is held stays.
+func TestOneCommandDrivesARunAndASecondWaitsForIt(t *testing.T) {
+	asUser(t)
+	r := open(t, t.TempDir())
+	first, err := r.Drive(t.Context(), "task", func() { t.Error("the first command waited") })
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := r.Drive(t.Context(), "another task", func() { t.Error("a command for another task waited") })
+	if err != nil {
+		t.Fatal(err)
+	}
+	other()
+
+	entries, err := os.ReadDir(r.cache)
+	if err != nil || len(entries) != 2 {
+		t.Fatalf("want the locks of two runs in the cache, got %v: %v", entries, err)
+	}
+	old := time.Now().Add(-2 * keep)
+	for _, entry := range entries {
+		if err := os.Chtimes(filepath.Join(r.cache, entry.Name()), old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+	r.prune()
+	if left, _ := os.ReadDir(r.cache); len(left) != 1 {
+		t.Fatalf("pruning kept %v, want the lock that is held and not the one that is free", left)
+	}
+
+	waiting, second := make(chan struct{}), make(chan func())
+	go func() {
+		release, _ := r.Drive(t.Context(), "task", func() { close(waiting) })
+		second <- release
+	}()
+	select {
+	case <-waiting:
+	case release := <-second:
+		release()
+		t.Fatal("a second command drove the run while the first held it")
+	}
+	select {
+	case <-second:
+		t.Fatal("the second command went on before the first ended")
+	case <-time.After(100 * time.Millisecond):
+	}
+	first()
+	(<-second)()
 }

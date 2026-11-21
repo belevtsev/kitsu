@@ -41,7 +41,7 @@ func TextSize(id string) int {
 
 // Skill is the skill for a daily task, in the default plugin. TeamPlugin is the
 // second plugin with the roles, which a host names as plugin:role; TeamRoot is
-// its directory and ManagedSkill its skill with the coordinator's instructions.
+// its directory and ManagedSkill its skill, which starts a local run.
 const (
 	Skill        = "skills/task"
 	TeamPlugin   = "kitsu-team"
@@ -58,8 +58,8 @@ func generated(id string) string {
 
 // HostFiles are the files the plugins ship, by their path from the root of
 // the repository: the skill for a daily task, and in the role plugin one
-// file for each role and the skill with the coordinator's instructions. Each
-// is made from one text, so the two cannot drift apart.
+// file for each role, the skill that starts a local run and, as its
+// reference, the coordinator's instructions. Each is made from one text.
 func HostFiles() (map[string]string, error) {
 	files := map[string]string{}
 	for _, role := range All(nil) {
@@ -72,16 +72,16 @@ func HostFiles() (map[string]string, error) {
 			role.ID, role.Job, model.Model, model.Effort, strings.Join(role.Tools, ", "))
 		files[TeamRoot+"/agents/"+role.ID+".md"] = head + generated(role.ID) + text
 	}
-	text, err := Text(Coordinator)
-	if err != nil {
-		return nil, err
+	for _, file := range [][3]string{
+		{Skill + "/SKILL.md", "harness", "---\nname: task\ndescription: Plan, implement, review, repair, verify or deliver a coding task from its current state in Codex or Claude Code. Use it to resume recorded work.\n---\n"},
+		{ManagedSkill + "/SKILL.md", "managed", "---\nname: managed\ndescription: Run a coding task through a developer agent, the approved checks and a reviewer agent that Kitsu coordinates in code. Use it only when the developer asks for a managed or coordinated run, an OpenSpec change or role settings.\n---\n"},
+		{ManagedSkill + "/coordinator.md", Coordinator, ""},
+	} {
+		text, err := texts.ReadFile("text/" + file[1] + ".md")
+		if err != nil {
+			return nil, err
+		}
+		files[file[0]] = file[2] + generated(file[1]) + string(text)
 	}
-	const head = "---\nname: task\ndescription: Plan, implement, review, repair, verify or deliver a coding task from its current state in Codex or Claude Code. Use it to resume recorded work.\n---\n"
-	daily, err := texts.ReadFile("text/harness.md")
-	if err != nil {
-		return nil, err
-	}
-	files[Skill+"/SKILL.md"] = head + generated("harness") + string(daily)
-	files[ManagedSkill+"/SKILL.md"] = "---\nname: managed\ndescription: Coordinate a coding task through Kitsu's specialist roles, an OpenSpec change record, role settings or a supervised run. Use it only when the developer asks for it, and first say that on two small tasks it used about 5 and 39 times the tokens of a plain agent.\n---\n" + generated(Coordinator) + text
 	return files, nil
 }

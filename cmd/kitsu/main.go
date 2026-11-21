@@ -3,12 +3,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"runtime/debug"
-	"syscall"
 
 	"github.com/belevtsev/kitsu/v3/internal/cli"
 )
@@ -21,10 +18,10 @@ var (
 )
 
 func main() {
-	// SIGHUP is trapped so that closing the terminal ends a run as interrupted.
-	// On Windows Ctrl+C and Ctrl+Break arrive as os.Interrupt, and the closing
-	// of the console as SIGTERM.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	// The hangup is trapped so that closing the terminal ends a run as stopped.
+	// On Windows Ctrl+C and Ctrl+Break arrive as an interrupt, and the closing
+	// of the console as a request to terminate.
+	ctx, stop := cli.SignalContext()
 	defer stop()
 	info, _ := debug.ReadBuildInfo()
 	v, r, b := buildIdentity(version, revision, builtAt, info)
