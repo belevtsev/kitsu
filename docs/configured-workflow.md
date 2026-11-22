@@ -6,9 +6,11 @@ Keep the [`kitsu-team` plugin](release-install.md#role-coordination) installed a
 
 ## Start and resume from either host
 
-**Codex** · “Use Kitsu’s configured workflow to fix CSV quoting and verify the exported value.”
+**Codex** · “Use Kitsu’s managed skill and the registered runner to fix CSV quoting and verify the exported value.”
 
-**Claude Code** · `/kitsu-team:managed Use the configured workflow to fix CSV quoting and verify the exported value.`
+**Claude Code** · `/kitsu-team:managed Use the registered runner to fix CSV quoting and verify the exported value.`
+
+Name the registered runner in the request. Without it the `managed` skill first tries a [run on your own machine](#run-a-task-on-your-own-machine), which is refused where a runner is registered.
 
 Resume in the original worktree. In Codex, ask “Resume configured Kitsu task `TASK_ID`.” In Claude Code, enter `/kitsu-team:managed Resume configured Kitsu task TASK_ID`. Both use the same saved assignments and runner.
 
@@ -105,14 +107,15 @@ kitsu task run --resume csv
 - **Agents.** Each one is a fresh headless `codex exec` or `claude --print` process that uses tokens of your account. The developer may edit files in its copy and gets no wider permission; the reviewer runs in the host's read-only mode. Claude Code loads your user settings and none of a project.
 - **Hosts.** A repository with [role assignments](roles.md) uses the hosts and models of its developer and reviewer. Without a roles file you configure nothing: the developer works in the host you installed Kitsu for, or else in the one found on `PATH`, and the reviewer in the other host when that is installed too, so that a second model reads the change.
 - **What you see.** Before the first job the run lists its stages with the host and model of each. Each job prints one line when it starts. At the end a table lists the time of each job and the tokens each agent's host reported.
-- **From a chat.** With `--json` the run prints the line that names the task and a reply of one line: the next action, the verification, the review findings and the tokens of all agents. For a finished run the two are under 300 bytes together. A paused or blocked run also says why. A local run is refused in the sandbox of a Codex chat, because Kitsu cannot write the records of a task there and an agent cannot sign in. Run the same command in your own terminal.
+- **From a chat.** The `managed` skill of `kitsu-team` starts a local run with one command. If the chat's shell leaves that command running in the background, the chat waits for it. If the shell ends the command, the chat continues the run with `--resume`. In Claude Code, enter `/kitsu-team:managed <request>`. In Codex, ask for Kitsu’s `managed` skill. With `--json` the run prints the line that names the task and a reply of one line: the next action, the verification, the review findings and the tokens of all agents. For a finished run the two are under 300 bytes together. A paused or blocked run also says why. `kitsu task show ID --json` has the rest. A local run is refused in the sandbox of a Codex chat, because Kitsu cannot write the records of a task there and an agent cannot sign in. Run the same command in your own terminal.
 - **Recorded model and effort.** Claude Code names the model it runs. Codex names none, and neither host reports its effort. For those, the task records what the host was started with.
 - **Environment.** An agent inherits your home, `PATH`, locale, proxy settings, the host's configuration directory and its API key variable. Other variables are not passed on: a token of another service, or a gateway or cloud provider that you set in your shell. Set those in the host's own settings file.
 - **Gate.** The checks of `kitsu.toml` gate the run. Approve them once with `kitsu check trust` in your own terminal. `--expect` is optional, and its command must be one of the declared checks.
 - **Private copy.** Each job runs in a copy of your change under your user cache directory. The copy is a Git repository with one commit that can read the objects of your project. It has none of your ignored files, dependency folders or host configuration such as `CLAUDE.md`.
 - **Returned changes.** Kitsu imports the files that differ from the copy the developer was given. A new file that Git ignores in your project is left behind. A result that touches `kitsu.toml`, the role assignments, host configuration, Git files, the hook directory or `openspec/` is refused as a whole, and your worktree stays as it was.
 - **Tests and check scripts.** The developer writes the tests, so it may also change an existing test, a script that a check runs or a tool's configuration. Only the commands in `kitsu.toml` are fixed. The developer is told to change those files only where the request needs it, and the reviewer is told to report a weakened one. Read the diff when that matters.
-- **Stopped command.** A job outlives the command that started it. After the command is killed, `--resume` waits for the same job and returns its result. Ctrl+C stops the job. `--resume TASK` then reports the stop, and `--resume TASK --retry` starts the job again.
+- **Stopped command.** A job outlives the command that started it. After the command is killed or terminated, or its terminal closes, `--resume` waits for the same job and returns its result. A command that was terminated says so. Only Ctrl+C stops the job. `--resume TASK` then reports the stop, and `--resume TASK --retry` starts the job again.
+- **Two commands.** One command drives a run at a time. A second command for the same task says that it waits, and goes on from where the run stands once the first has ended.
 - **Changed policy.** A `kitsu.toml` that changed since the task started refuses the resume.
 - **Registered worktrees.** Where an administrator registered a runner for the worktree, `--local` is refused and local results do not count.
 

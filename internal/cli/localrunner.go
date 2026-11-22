@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"text/tabwriter"
 	"time"
 
@@ -37,6 +39,23 @@ func localJobCommand() uxCommand {
 				return checkExecutable(tree, decl.Check{ID: check.ID, Run: check.Argv})
 			})
 		}}
+}
+
+// SignalContext is the context of the program. It ends on Ctrl+C, when the
+// program is terminated and when its terminal closes. Ctrl+C stops the job of
+// a local run. After the other two the job goes on: a chat's shell terminates
+// a command that takes long, and the chat then waits with --resume.
+func SignalContext() (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancelCause(context.Background())
+	received := make(chan os.Signal, 1)
+	signal.Notify(received, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	go func() {
+		if <-received == os.Interrupt {
+			cancel(nil)
+		}
+		cancel(localrunner.ErrLeft)
+	}()
+	return ctx, func() { signal.Stop(received); cancel(nil) }
 }
 
 // openWorkflowRunner picks the runner of a run: the one a saved task pinned,
@@ -139,7 +158,7 @@ var registeredRunner = workflowrunner.Load
 // record is a file in the checkout.
 func localRunnerAllowed(root string) error {
 	if _, err := registeredRunner(root); !errors.Is(err, workflowrunner.ErrUnregistered) {
-		return errors.New("a runner service is registered for this worktree, or its registration cannot be read. The local runner is not available here")
+		return errors.New("a runner service is registered for this worktree, or its registration cannot be read. The local runner is not available here: leave --local out")
 	}
 	return nil
 }
@@ -233,14 +252,42 @@ func savedWorkflow(s *session, id string) *harness.Task {
 	return task
 }
 
+// driveWorkflow makes this command the only one that drives the local run of
+// a task. A second command waits here until the first has ended, and then
+// goes on from where the run stands: a chat starts one while its shell has
+// left the first running. The returned function lets the next command in,
+// and tells a command that was stopped how the run goes on.
+func driveWorkflow(ctx context.Context, s *session, o workflowOptions, result *error) func() {
+	r, local := s.workflowRunner.(*localrunner.Runner)
+	if !local {
+		return func() {}
+	}
+	release, err := r.Drive(ctx, o.id, func() {
+		fmt.Fprintf(s.cfg.Err, "Kitsu task %s: another command runs this task. Waiting for it to end.\n", o.id)
+	})
+	if err != nil && ctx.Err() == nil {
+		fmt.Fprintf(s.cfg.Err, "kitsu: this run has no lock (%v). Start no second command for task %s.\n", err, o.id)
+	}
+	return func() {
+		release()
+		if *result != nil && errors.Is(context.Cause(ctx), localrunner.ErrLeft) {
+			*result = failf("this command was stopped. A running job goes on: wait for it with --resume")
+		}
+	}
+}
+
 // announceWorkflow is what a new run says before its first job. A local run
 // names its stages. With --json it says the task's name alone: a chat reads
-// every line.
+// every line, and its starter has the command that resumes.
 func announceWorkflow(ctx context.Context, s *session, o workflowOptions) {
 	if o.resume != "" {
 		return
 	}
-	fmt.Fprintf(s.cfg.Err, "Kitsu task %s. Resume with kitsu task run --resume %s\n", o.id, o.id)
+	if o.local && o.json {
+		fmt.Fprintln(s.cfg.Err, "Kitsu task", o.id)
+	} else {
+		fmt.Fprintf(s.cfg.Err, "Kitsu task %s. Resume with kitsu task run --resume %s\n", o.id, o.id)
+	}
 	task := savedWorkflow(s, o.id)
 	switch {
 	case !o.local:
@@ -294,14 +341,14 @@ func announceWorkflowStage(s *session, o workflowOptions, a *harness.WorkflowAtt
 }
 
 // printWorkflowReply is the --json reply of a run. A chat reads all of it, so
-// a local run answers in one line with what the chat reports; the rest is one
-// command away, in details.
+// a local run answers in one line with what the chat reports. The rest is in
+// kitsu task show ID --json.
 func printWorkflowReply(s *session, o workflowOptions, reply map[string]any) error {
 	if s.workflowRunner.Offer().Profile != localrunner.Profile {
 		return printJSON(s.cfg, reply)
 	}
 	for key := range reply {
-		if !slices.Contains([]string{"task", "next", "verified", "repository_checks", "delivery", "review_findings", "workflow_problem", "diagnostic", "pause", "resume", "details"}, key) {
+		if !slices.Contains([]string{"task", "next", "verified", "repository_checks", "delivery", "review_findings", "workflow_problem", "diagnostic", "pause", "resume"}, key) {
 			delete(reply, key)
 		}
 	}

@@ -189,7 +189,7 @@ working tree.
 
 ### The coordinator
 
-The developer's host session coordinates the work. For managed work, the `managed` skill of the `kitsu-team` plugin holds the instructions printed by `kitsu role text coordinator`. A normal plugin request follows the [daily workflow](task-harness.md#how-a-daily-task-runs). Run
+The developer's host session coordinates the work. For managed work, ask the `managed` skill of the `kitsu-team` plugin to coordinate the roles in the chat. Its file `coordinator.md` holds the instructions printed by `kitsu role text coordinator`. Without that request the skill starts a [local run](configured-workflow.md#run-a-task-on-your-own-machine). A normal plugin request follows the [daily workflow](task-harness.md#how-a-daily-task-runs). Run
 `kitsu agent check --host codex` or `--host claude` to inspect local setup, then
 `kitsu task start "<coding request>" --host <host>` to explicitly launch that host with the task
 skill. For an existing desktop session, add `--print` and paste its handoff. Print and JSON
@@ -488,14 +488,15 @@ The files a host reads are generated from them:
 - `plugins/kitsu-team/agents/<role>.md`, one for each role: a header with `name`, `description` (the job), `model`
   and `effort` (the defaults for Claude Code) and `tools`, then a comment that the file is
   generated, then the role's text.
-- `skills/task/SKILL.md` contains the daily task instructions. The managed coordinator text is shipped in `plugins/kitsu-team/skills/managed/SKILL.md`.
+- `skills/task/SKILL.md` contains the daily task instructions. `plugins/kitsu-team/skills/managed/SKILL.md` is the starter of a local run. The managed coordinator text is shipped next to it, in `coordinator.md`.
 
 A test of this repository makes these files from the texts and fails when a file on disk differs,
 or when `plugins/kitsu-team/agents/` holds a file that belongs to no role. The failure message names the file and the
 command that writes the files again. Edit the text, never the generated file.
 
 Other tests keep each role text within 8,000 characters, the coordinator's within 12,000 and all
-of them within 60,000, and search the texts for the names of languages and build tools.
+of them within 60,000, and search the texts for the names of languages and build tools. A scenario
+test keeps the starter within 150 words after its head.
 
 ### Claude Code
 

@@ -78,9 +78,11 @@ the case says that it continues from another case. Run each case once in each of
 In Claude Code, at the root of the clone, give:
 
 ```text
-/kitsu-team:managed <request>
+/kitsu-team:managed Coordinate the roles in this chat. <request>
 ```
 
+The first sentence asks for the roles. Without it the skill starts a
+[local run](configured-workflow.md#run-a-task-on-your-own-machine) instead.
 `<request>` is the text in the case's "Request" field, word for word. The owner plays the
 developer: approve when asked, answer open questions in the sense of the request, and say nothing
 about a push, unless the case says otherwise.
@@ -165,7 +167,7 @@ table above.
   requirement "Two paths".
 - **Prepare:** The prepared repository. Pick one word of a message the program prints and
   misspell it in `<src>`; commit that through the gate.
-- **Request:** `/kitsu-team:managed The message has a typo: "<the misspelt word>". Fix it.`
+- **Request:** `/kitsu-team:managed Coordinate the roles in this chat. The message has a typo: "<the misspelt word>". Fix it.`
 - **Look for:**
   1. In the session's record, a message of the coordinator says that the task needs no roles
      and offers to make the change directly, and it comes before any role start.
@@ -642,7 +644,7 @@ they ask, and nothing else.
 
 ### The two arms
 
-- **The workflow.** The request is given with `/kitsu-team:managed`. The owner approves and
+- **The workflow.** The request is given with `/kitsu-team:managed`, as in [Starting a run](#starting-a-run). The owner approves and
   answers from the sheet.
 - **One agent.** The same request is given to one session without roles, on the model and the
   effort that `kitsu roles` prints for `developer` on that host. The plugin's hooks still run, so

@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/belevtsev/kitsu/v3/internal/kitsutest"
 )
@@ -30,6 +31,7 @@ type hostTurn struct {
 	Write  map[string]string `json:"write,omitempty"`  // files, relative to its working directory
 	Result map[string]any    `json:"result,omitempty"` // its structured answer
 	Diff   bool              `json:"diff,omitempty"`   // run the comparison that the assignment names
+	Wait   string            `json:"wait,omitempty"`   // answer only once this file exists, or its folder is gone
 }
 
 // hostCall is what a scripted host saw in one start.
@@ -128,6 +130,15 @@ func playHost(host string) int {
 	}
 	_, _ = log.Write(append(record, '\n'))
 	_ = log.Close()
+	for turn.Wait != "" {
+		if _, err := os.Stat(turn.Wait); err == nil {
+			break
+		}
+		if _, err := os.Stat(filepath.Dir(turn.Wait)); err != nil {
+			return 75 // the test ended without letting this host go
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 
 	session := fmt.Sprintf("%s-session-%d", host, n)
 	result, _ := json.Marshal(turn.Result)

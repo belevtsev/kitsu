@@ -103,10 +103,9 @@ integration.
 
 ## A larger task
 
-For new behaviour that deserves a written specification, or a change across several parts of
-the code, the plugin `kitsu-team` has the skill `managed`: seven roles take the task from a
-specification through tests to code, a review and a gated commit. It uses several times the tokens
-of the loop, so propose it and let the user choose.
+For a change across several parts of the code, or one that deserves a second reader, the plugin
+`kitsu-team` has the skill `managed`: a developer agent, the approved checks and a reviewer agent,
+run in code. Each agent uses tokens of the user's account, so propose it and let the user choose.
 
 ## The examples
 

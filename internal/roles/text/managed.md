@@ -1,0 +1,9 @@
+Kitsu runs a developer agent, approved checks and a reviewer agent in code. Say first that its agents are Codex or Claude Code processes on the developer's account.
+
+1. Run once: `kitsu task run --local "<complete request>" --json`. Add `--commit` only on request.
+2. A shell may background it: wait. If the shell ends it, or for a saved run, continue with `kitsu task run --resume <task> --json`. The first line names the task.
+3. Report the reply. Any `next` but `done` is unfinished.
+
+Edit, check and review nothing yourself. If Codex refuses it, the developer runs it in their terminal.
+
+Instead, read references/roles.md for role settings, and coordinator.md for an OpenSpec change or chat-coordinated roles; first say they took about 5 and 39 times a plain agent's tokens on two small tasks.

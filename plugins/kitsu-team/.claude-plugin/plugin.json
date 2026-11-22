@@ -1,7 +1,7 @@
 {
   "name": "kitsu-team",
   "version": "0.0.2",
-  "description": "Experimental: coordinate a coding task through seven specialist roles, OpenSpec records, role settings and supervised runs. Installed with Kitsu unless you turn it off. Needs the kitsu plugin. A managed task costs several times the tokens of a daily task.",
+  "description": "Experimental: run a coding task through a developer agent, your approved checks and a reviewer agent that Kitsu coordinates in code. On request: seven specialist roles coordinated in the chat, OpenSpec records, role settings and supervised runs. Installed with Kitsu unless you turn it off. Needs the kitsu plugin.",
   "author": {
     "name": "Pavlo Belevtsev",
     "url": "https://github.com/belevtsev"

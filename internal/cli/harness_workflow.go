@@ -128,7 +128,7 @@ func (o workflowOptions) validateResume(f *flag.FlagSet, p parsed) error {
 	return err
 }
 
-func runConfiguredWorkflow(ctx context.Context, cfg Config, args []string) error {
+func runConfiguredWorkflow(ctx context.Context, cfg Config, args []string) (err error) {
 	o, err := parseWorkflow(args)
 	if err != nil {
 		return err
@@ -143,13 +143,13 @@ func runConfiguredWorkflow(ctx context.Context, cfg Config, args []string) error
 	if err := validateWorkflowPolicy(s.workflowRunner.Offer().Policy); err != nil {
 		return err
 	}
+	defer driveWorkflow(ctx, s, o, &err)()
 	if o.release != "" {
 		return releaseWorkflowAttempt(ctx, s, o)
 	}
 	if err := workflowIntake(ctx, s, o); err != nil {
 		return err
 	}
-
 	announceWorkflow(ctx, s, o)
 	for {
 		if err := ctx.Err(); err != nil {
